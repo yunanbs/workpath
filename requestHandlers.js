@@ -1,22 +1,12 @@
 var exec = require("child_process").exec;
 
-function start(response){
+function start(response,data){
   
   console.log("Request handler 'start' was called.");
-  exec("npm install pg",{timeout:100000},function(error,data){
-      ResponsOut(response,data);
-    });
-  
 }
-
-function sleep(milliSeconds){
-    var startTime =new Date().getTime();
-    while(new Date().getTime()< startTime + milliSeconds);
-  }
-
   
 
-function upload(response){
+function upload(response,data){
   console.log("Request handler 'upload' was called.");
   ResponsOut(response,"Upload Math");
 }
