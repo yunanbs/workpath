@@ -20,6 +20,7 @@ handle["/AutoSqlQuery"] = dblib.AutoSqlQuery;
 handle["/GetFileList"] = filehelper.GetFileList;
 handle["/ReadFile"] = filehelper.ReadFile;
 handle["/ReadFileByType"] = filehelper.ReadFileByType;
+handle["/InsertData"] =dblib.InsertData;
 // 多进程负载均衡 
 //在vscode debug环境下 无法使用  
 //在服务环境下 可以正常使用。调试时关闭  运行时启动

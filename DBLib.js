@@ -1,14 +1,10 @@
 var pg = require("pg");
 var querystring = require("querystring");
 var async = require("async");
+var server = require("./Server");
 
 var dbStr = "tcp://postgres:bs@127.0.0.1:5432/SimpleDB";
 
-function ResponsOut(response,content) {
-  //response.writeHead(200,{"Content-Type":"applilcation/json"});
-  response.write(content);
-  response.end();
-}
 
 function AutoSqlQuery(response,data) {
     async.auto({
@@ -55,3 +51,58 @@ function AutoSqlQuery(response,data) {
 }
 
 exports.AutoSqlQuery = AutoSqlQuery;
+
+exports.InsertData = function (response,data) {
+    var count = data.count;
+    var sqllist=[];
+    for(var i=0;i<count;i++){
+        var usercontent = {
+            name:"people"+i,
+            age:i*20,
+            parent:[
+                {
+                    father:"f"+i
+                },
+                {
+                    mother:"m"+i
+                }
+            ]
+        }
+        
+        var jstr = JSON.stringify(usercontent);
+        sqllist[i] = jstr;
+    }
+    
+    async.auto({
+        inidb:function (callback) {
+             var tmpDB = new pg.Client(dbStr);
+            console.log("create db : "+dbStr);
+            tmpDB.connect(function (error,result) {
+                callback(error,result);
+            });
+        },
+        inisertsqls:["inidb",function (results,callback) {
+            async.map(sqllist,function (item,callback) {
+                var dbclient = results.inidb;
+                var sql = "insert into sp_usertable(usercontent) values('"+item+"')";
+                dbclient.query(sql,function (error,result) {
+                    callback(error,result);
+                })
+            },function (error,result) {
+                callback(error,result);
+            })
+        }]
+                
+    },function (error,results) {
+        var result;
+        if(error){
+            result = "fail";
+        }else{
+            result = "succeed";
+        }
+        
+      server.ResponsOut(response,JSON.stringify(result));
+    });
+     
+     
+}
