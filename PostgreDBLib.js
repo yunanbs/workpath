@@ -5,14 +5,43 @@ var co = require("co");
 
 var dbStr = "tcp://postgres:bs@127.0.0.1:5432/SimpleDB";
 
-var hw = "hello";
-
 function ResponsOut(response,content) {
   response.writeHead(200,{"Content-Type":"text/json"});
   response.write(content);
   response.end();
 }
 
+function AutoSqlQuery(response,data) {
+    async.auto({
+        inidb:function (callback) {
+            var tmpDB = new pg.Client(dbStr);
+            console.log("create db : "+dbStr);
+            tmpDB.connect(function (error,result) {
+                callback(error,result);
+            });
+        },
+        
+        excuteSql:["inidb",function (results,callback) {
+            console.log("do sql: "+data.sql);
+            var dbclient = results.inidb;
+            dbclient.query(data.sql,function (error,result) {
+                 callback(error,result);
+            });
+        }
+        ]
+    },
+    function (error,results) {
+        console.log("in cb ");
+        var dbclient = results.inidb;
+        dbclient.end();
+        console.log("db close");
+        console.log(results.excuteSql);
+        var jstr = JSON.stringify(results.excuteSql.rows);
+        ResponsOut(response,jstr);
+    })    
+}
+
+/* 普通调用逻辑
 function connectDB(response,data) {
 
     var dbClient = new pg.Client(dbStr);
@@ -117,35 +146,19 @@ function insertSqls(data,dbcon,response) {
         }
     })
 }
+*/
 
+/*async Series
 function QuerySqlNew(response,data) {
     var dbClient = new pg.Client(dbStr);// create dbConnect
     async.series(
         [
-           /* function (cb) {
-                dbClient.connect(function (error,result) {
-                    if(error)
-                    {
-                      cb(error);  
-                    }
-                    cb(null,result);
-                })
+           
+            function (callback) {
+                CreateCon(callback,dbClient);
             },
-            function (cb) {
-                var sql = data.sql;
-                dbClient.query(sql,function (error,result) {
-                     if(error)
-                    {
-                      cb(error);  
-                    }
-                    cb(null,result);
-                })
-            }*/
-            function (cb) {
-                CreateCon(cb,dbClient);
-            },
-            function (cb) {
-                DoSql(cb,dbClient,data);
+            function (callback) {
+                DoSql(callback,dbClient,data);
             }
         ],
         function(err, results) {
@@ -186,15 +199,17 @@ function Closedb(dbclient) {
     console.log('in Closedb function');
     dbclient.end();
 }
+*/
 
 
+/*co
 function QuerySqlCO(response,data) {
     var sql = data.sql;
-    var dbclient = new  pg.Client(dbStr);
     co(function *() {
         var dbconresult = yield cocreatedb(dbStr);
         var jresut = yield codosql(sql,dbconresult);
-        //dbclient.end();
+        dbconresult.end();
+        console.log("DB Closed");
         //ResponsOut(response,jresut);
         return jresut;
     }).then(function (result){
@@ -225,8 +240,39 @@ function codosql(sql,dbclient) {
     }
 }
 
-exports.connectDB = connectDB;
-exports.QuerySql = QuerySql;
-exports.MassSql = MassSql;
-exports.QuerySqlNew = QuerySqlNew;
-exports.QuerySqlCO = QuerySqlCO;
+function MassSqlCO(response,data) {
+    var sqlcount = data.count;
+    var finished = 0;
+    var succeed = 0;
+    co(function *() {
+        var dbclient =yield cocreatedb(dbStr);
+        var delsql ="delete from dmtable";
+        var tmp = yield codosql(delsql,dbclient);
+        for(var i=0;i<sqlcount;i++){
+            var tmpsql = "insert into dmtable values('"+i+"','"+i+"','{}')";
+            var subResuslt =yield codosql(tmpsql,dbclient);
+            finished = finished+1;
+            succeed = succeed+subResuslt.rowCount;
+        }
+        var resultstr = "finish "+finished+" succeed "+succeed;
+        console.log(resultstr);
+        return resultstr
+    }).then(function (result) {
+        console.log(result);
+        var jstr = JSON.stringify(result);
+        ResponsOut(response,jstr);
+    },function (error) {
+        console.log(result);
+        ResponsOut(response,"");
+    })
+}*/
+
+
+
+//exports.connectDB = connectDB;
+//exports.QuerySql = QuerySql;
+//exports.MassSql = MassSql;
+//exports.QuerySqlNew = QuerySqlNew;
+//exports.QuerySqlCO = QuerySqlCO;
+//exports.MassSqlCO = MassSqlCO;
+exports.AutoSqlQuery = AutoSqlQuery;
