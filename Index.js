@@ -5,22 +5,21 @@ var dblib = require("./DBLib");
 var filehelper = require("./CheckFile");
 var cluster = require("cluster");
 var cpus = require("os").cpus();
+var empserver = require("./empserver");
 
 var handle ={}
 handle["/"]= requestHandlers.start;
 handle["/start"]= requestHandlers.start;
 handle["/upload"]= requestHandlers.upload;
-//handle["/inidb"]= dblib.connectDB;
-//handle["/QuerySql"]= dblib.QuerySql;
-//handle["/MassSql"] = dblib.MassSql;
-//handle["/QuerySqlNew"] = dblib.QuerySqlNew;
-//handle["/QuerySqlCO"] =dblib.QuerySqlCO;
-//handle["/MassSqlCO"] = dblib.MassSqlCO;
 handle["/AutoSqlQuery"] = dblib.AutoSqlQuery;
 handle["/GetFileList"] = filehelper.GetFileList;
 handle["/ReadFile"] = filehelper.ReadFile;
 handle["/ReadFileByType"] = filehelper.ReadFileByType;
-handle["/InsertData"] =dblib.InsertData;
+
+handle["/getweather"] = requestHandlers.getweather;
+
+handle["/CustomerFullTextSearch"] = empserver.CustomerFullTextSearch;
+handle["/AddCustomerBasicInfo"] = empserver.AddCustomerBasicInfo;
 // 多进程负载均衡 
 //在vscode debug环境下 无法使用  
 //在服务环境下 可以正常使用。调试时关闭  运行时启动

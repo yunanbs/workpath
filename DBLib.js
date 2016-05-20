@@ -3,7 +3,7 @@ var querystring = require("querystring");
 var async = require("async");
 var server = require("./Server");
 
-var dbStr = "tcp://postgres:bs@127.0.0.1:5432/SimpleDB";
+var dbStr = "tcp://baosight:bs@127.0.0.1:5432/simpledb";
 
 
 function AutoSqlQuery(response,data) {
@@ -33,10 +33,13 @@ function AutoSqlQuery(response,data) {
             console.log("db close");
         }
         
-       
         console.log("error:"+error);
         console.log("results:"+results);
-       
+       if(error){
+            server.ResponsOut(response,JSON.stringify(error));
+            return;
+        }
+        
         var sqlresult = results.sqlresult;
         console.log(sqlresult);
         
@@ -46,63 +49,48 @@ function AutoSqlQuery(response,data) {
         }else{
             jsonresult =  JSON.stringify(sqlresult.rowCount);
         }
-        ResponsOut(response,jsonresult);
+        server.ResponsOut(response,jsonresult);
+    })    
+}
+
+function ExcuteSql(sql,callback) {
+    async.auto({
+        inidb:function (cb) {
+            var tmpDB = new pg.Client(dbStr);
+            console.log("create db : "+dbStr);
+            tmpDB.connect(function (error,result) {
+                cb(error,result);
+            });
+        },
+        
+        sqlresult:["inidb",function (results,cb) {
+            console.log("do sql: "+sql);
+            var dbclient = results.inidb;
+            dbclient.query(sql,function (error,result) {
+                 cb(error,result);
+            });
+        }
+        ]
+    },
+    function (error,results) {
+        var dbclient = results.inidb;
+        if(dbclient!==undefined)
+        {
+            dbclient.end();
+            console.log("db close");
+        }
+        
+        console.log("error:"+error);
+        console.log("results:"+results);
+        if(error){
+            callback(error,null);
+        }else{
+            callback(error,results.sqlresult);
+        }
+        
     })    
 }
 
 exports.AutoSqlQuery = AutoSqlQuery;
 
-exports.InsertData = function (response,data) {
-    var count = data.count;
-    var sqllist=[];
-    for(var i=0;i<count;i++){
-        var usercontent = {
-            name:"people"+i,
-            age:i*20,
-            parent:[
-                {
-                    father:"f"+i
-                },
-                {
-                    mother:"m"+i
-                }
-            ]
-        }
-        
-        var jstr = JSON.stringify(usercontent);
-        sqllist[i] = jstr;
-    }
-    
-    async.auto({
-        inidb:function (callback) {
-             var tmpDB = new pg.Client(dbStr);
-            console.log("create db : "+dbStr);
-            tmpDB.connect(function (error,result) {
-                callback(error,result);
-            });
-        },
-        inisertsqls:["inidb",function (results,callback) {
-            async.map(sqllist,function (item,callback) {
-                var dbclient = results.inidb;
-                var sql = "insert into sp_usertable(usercontent) values('"+item+"')";
-                dbclient.query(sql,function (error,result) {
-                    callback(error,result);
-                })
-            },function (error,result) {
-                callback(error,result);
-            })
-        }]
-                
-    },function (error,results) {
-        var result;
-        if(error){
-            result = "fail";
-        }else{
-            result = "succeed";
-        }
-        
-      server.ResponsOut(response,JSON.stringify(result));
-    });
-     
-     
-}
+exports.ExcuteSql = ExcuteSql;

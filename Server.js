@@ -28,7 +28,13 @@ function onRequest(request, response){
     });
     request.on("end",function(){
         //postData = JSON.parse(querystring.parse(postData));
-        postData = JSON.parse(postData);
+        try{
+             postData = JSON.parse(postData);
+        }catch(e){
+            ResponsOut(response,"404");
+            return;
+        }
+       
         lroute(pathname,lhandle,response,postData);
     });
    }
