@@ -42,7 +42,7 @@ exports.CustomerFullTextSearch = function (response,data) {
 exports.AddCustomerBasicInfo = function (response,data) {
     //新增会员信息基本语句
     var basesql = "insert into customerdata(cdata) values('$customerdata')";    
-    //获取传递过来的用户信息
+    //获取传递过来的用户信息 json对象
     var customerdata = data.customerdata;        
     //获取查询语句
     var todosql = basesql.replace('$customerdata',customerdata);    
@@ -57,6 +57,7 @@ exports.AddCustomerBasicInfo = function (response,data) {
 //会员信息通用更新语句，可以进行任意位置的数据更新。
 //值可以是简单的类型如string 也可以是json对象。
 //如果最后一个路径不存在，则会新建路径该属性
+//理论上，该方法可以实现文本的全更新
 exports.CommCustomerUpdate = function (response,data) {
     //系统用户编号
     var cid = data.cid;
@@ -65,9 +66,28 @@ exports.CommCustomerUpdate = function (response,data) {
     //值
     var val = data.val;
     //基本更新语句
-    var basesql = "update customerdata set cdata = jsonb_set(cdata,'{#path}','#val',true)";
+    var basesql = "update customerdata set cdata = jsonb_set(cdata,'{#path}','#val',true) where cid = '#cid'";
     //获取update语句
-    var todosql = basesql.replace('#path',path).replace('#val',val);
+    var todosql = basesql.replace('#path',path).replace('#val',val).replace('#cid',cid);
+    //执行sql   
+    dblib.ExcuteSql(todosql,function (error,result) {
+        //输出sql语句执行结果
+        outjsonresult(error,result,response);
+    });
+}
+
+//在指定路径的数组下插入元素
+exports.CommCustomerInsert = function (response,data) {
+    //系统用户编号
+    var cid = data.cid;
+    //路径信息
+    var path = data.path;
+    //值
+    var val = data.val;
+    //基本insert语句
+    var basesql = "update customerdata set cdata = jsonb_insert(cdata,'{#path}','#val')";
+    //获取insert语句
+    var todosql = basesql.replace('#path',path).replace('#val',val).replace('#cid',cid);
     //执行sql   
     dblib.ExcuteSql(todosql,function (error,result) {
         //输出sql语句执行结果
